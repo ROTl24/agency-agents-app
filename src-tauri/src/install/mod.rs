@@ -980,8 +980,9 @@ pub async fn reveal_path(path: String) -> Result<(), AppError> {
         let program = "explorer";
         #[cfg(all(unix, not(target_os = "macos")))]
         let program = "xdg-open";
-        std::process::Command::new(program)
-            .arg(&path)
+        let mut c = std::process::Command::new(program);
+        crate::util::proc::sanitize(&mut c);
+        c.arg(&path)
             .status()
             .map(|_| ())
             .map_err(|e| AppError::Io {
@@ -1014,6 +1015,7 @@ fn first_version_line(s: &str) -> Option<String> {
 async fn probe_version(tool: &str) -> Option<String> {
     let (bin, args) = version_cmd(tool)?;
     let mut command = headless_tokio_command(bin);
+    crate::util::proc::sanitize_tokio(&mut command);
     command.args(args);
     let fut = command.output();
     match tokio::time::timeout(std::time::Duration::from_secs(3), fut).await {
